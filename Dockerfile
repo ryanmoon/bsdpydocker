@@ -1,36 +1,42 @@
-# Dockerfile for BSDPy
-# All in one container, tftp, nginx and bsdpy
-# Graciously taken from Pepijn Bruienne's work
+######################################################
+# DOCKERFILE W/TFTP, NGINX, & BSDPY TO USE WITH IMAGR
+######################################################
+# Adapted from Pepijn Bruienne, amd Calem Hunter
 
-# Version		:	Dev 
-# Date			:	04-05-15
-# BSDPy Commit	:	8a011fc
+###########################
+# LATEST VERSION OF ALPINE
+###########################
 
-# Start from Debian to save space - about 100mb smaller than Ubuntu
-FROM debian:wheezy
+FROM alpine:3.6
 
-MAINTAINER Calum Hunter (calum.h@gmail.com)
+MAINTAINER Ryan Moon (ryan.moon@gmail.com)
 
-ENV DEBIAN_FRONTEND noninteractive
+###############
+# ADD PACKAGES
+###############
 
-# Add the packages we need from apt then remove the cached list saving some disk space
-RUN apt-get -y update && \
-	apt-get install -y curl \
-		libxml2-dev \
-		python \
-		python-dev \
-		python-pip \
-		nginx \
-		tftpd-hpa && \
-		apt-get clean && \
-		rm -rf /var/lib/apt/lists/*
+RUN apk add --update \
+    curl \
+    libxml2-dev \
+    python \
+    python-dev \
+    py-pip \
+    nginx \
+    tftp-hpa \
+  && rm -rf /var/cache/apk/*
 
-# Set up the directories and log files
+###########################
+# CREATE DIRECTORIES & LOG
+###########################
+
 RUN mkdir /nbi && \
-	mkdir /bsdpy && \
-	touch /var/log/bsdpserver.log
+  mkdir /bsdpy && \
+  touch /var/log/bsdpserver.log
 
-# Add all our files and scripts
+######################
+# ADD FILES & SCRIPTS
+######################
+
 ADD nginx.conf /etc/nginx/nginx.conf
 ADD start.sh /start.sh
 ADD bsdpserver.py /bsdpy/
@@ -38,18 +44,31 @@ ADD __init__.py /bsdpy/
 ADD pydhcplib /bsdpy/pydhcplib
 ADD requirements.txt /
 
-# setup python
+###############
+# SETUP PYTHON
+###############
+
 RUN pip install -r requirements.txt
 
-# Ensure permissions are setup correctly
+#####################
+# CORRECT PERMISIONS
+#####################
+
 RUN chown -R root:root /etc/nginx/nginx.conf && \
 	chown -R root:root /start.sh && \
 	chmod +x /start.sh /bsdpy/bsdpserver.py
 
-# Expose our ports to the world
+###############
+# EXPOSE PORTS
+###############
+
 EXPOSE 67/udp
 EXPOSE 69/udp
 EXPOSE 80
 
-CMD /start.sh
+########
+# START
+########
+
+CMD ["/start.sh"]
 
